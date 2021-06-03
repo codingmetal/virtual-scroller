@@ -2,7 +2,7 @@
 虚拟滚动列表
 
 插件介绍：</br>
-复用dom结构，通过translate减少重绘
+复用dom结构，通过translate减少回流
 
 参数：</br>
 list：数据源</br>
