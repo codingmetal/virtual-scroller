@@ -1,0 +1,151 @@
+<template>
+  <div style="height: 100%" @scroll.passive="onScroll" class="scroll-wrap">
+    <div v-if="list.length > 0" :style="{height: `${totalHeight}px`}" class="view-wrap">
+      <div class="scroll-item" :id="view.id" v-for="(view, index) in pool" :key="view.id"
+        :style="{transform: `translateY(${view.pos}px)`}">
+        <slot :item="view.item" :index="view.index" :pos="view.pos"></slot>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default {
+    name: 'VirtualScroller',
+    props: {
+      list: {
+        type: Array,
+        default() {
+          return []
+        }
+      },
+      itemHeight: {
+        type: Number,
+        default: 0
+      },
+      keyField: {
+        type: String,
+        default: ""
+      }
+    },
+    data() {
+      return {
+        startIndex: 0,
+        endIndex: 0,
+        scrollItems: -1,
+        showNum: 0,
+        totalHeight: "auto",
+
+        pool: [],
+        views: null,
+        keyid: 0,
+      }
+    },
+    watch: {
+      list: {
+        handler() {
+          this.init()
+        }
+      }
+    },
+    methods: {
+      init() {
+        this.views = new Map();
+        this.viewHeight = this.$el.getBoundingClientRect().height;
+        this.totalHeight = this.list.length * this.itemHeight
+        this.showNum = Math.ceil(this.viewHeight / this.itemHeight);
+        this.updateItems();
+      },
+      getPositionIndex() {
+        this.startIndex = this.scrollItems;
+        this.endIndex = this.startIndex + this.showNum - 1;
+        if (this.endIndex >= this.list.length) {
+          this.endIndex = this.list.length - 1;
+        }
+      },
+      onScroll(e) {
+        requestAnimationFrame(() => {
+          this.updateItems();
+        });
+      },
+      updateItems() {
+        const _scrollItems = this.scrollItems;
+        const st = this.$el.scrollTop;
+        this.scrollItems = Math.ceil(st / this.itemHeight);
+        if (this.scrollItems == _scrollItems && _scrollItems != -1) {
+          return;
+        }
+        console.log("-----------------------更新开始------------------");
+        const _startIndex = this.startIndex;
+        const _endIndex = this.endIndex;
+        this.getPositionIndex();
+        console.log("滚动过的条数", this.scrollItems);
+        console.log(_startIndex, "上次开始索引");
+        console.log(_endIndex, "上次结束索引");
+        console.log(this.startIndex, "这次开始索引");
+        console.log(this.endIndex, "这次结束索引");
+        let count = 0;
+        let difCount = this.showNum - 1;
+        for (let i = this.startIndex; i <= this.endIndex; i++) {
+          const item = this.list[i];
+          const view = this.views.get(item[this.keyField]);
+          if (!view) {
+            this.views.set(item[this.keyField], {
+              index: i,
+              item,
+              pos: this.itemHeight * i,
+              id: this.keyid++
+            });
+          }
+
+          if (this.pool.length < this.showNum) {
+            this.pool.push(this.views.get(item[this.keyField]));
+          } else {
+            const index = this.pool.findIndex(item => {
+              return item.index === i;
+            });
+            if (index == -1) {
+              console.log(i, "不存在的条目索引");
+              if (i > _endIndex) {
+                this.pool[count].index = i;
+                this.pool[count].item = this.list[i];
+                this.pool[count].pos = this.itemHeight * i;
+                count++;
+              } else {
+                const length = this.pool.length;
+                this.pool[difCount].index = i;
+                this.pool[difCount].item = this.list[i];
+                this.pool[difCount].pos = this.itemHeight * i;
+                difCount--;
+              }
+            }
+          }
+        }
+        this.pool.sort((viewA, viewB) => viewA.index - viewB.index);
+        console.log(this.pool.map(item => item.index).toString(), "渲染池");
+        console.log("-----------------------更新结束------------------");
+      }
+
+    },
+    created() {
+    },
+    mounted() {
+      this.init()
+    }
+  }
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+  .scroll-wrap {
+    overflow: scroll
+  }
+
+  .scroll-wrap .view-wrap {
+    position: relative
+  }
+
+  .scroll-wrap .scroll-item {
+    position: absolute
+  }
+</style>
