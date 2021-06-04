@@ -43,6 +43,7 @@
         pool: [],
         views: null,
         keyid: 0,
+        isInit: false,
 
       }
     },
@@ -56,10 +57,18 @@
     methods: {
       init() {
         this.views = new Map();
+        this.pool = [];
+        this.keyid = 0;
+        this.isInit = false;
+        this.startIndex = 0;
+        this.endIndex = 0;
+        this.scrollItems = -1;
         this.viewHeight = this.$el.getBoundingClientRect().height;
         this.totalHeight = this.list.length * this.itemHeight
         this.showNum = Math.ceil((this.viewHeight + this.buffer * 2) / this.itemHeight);
-        this.updateItems();
+        if (!this.list.length <= 0) {
+          this.updateItems();
+        }
       },
       getPositionIndex() {
         this.startIndex = this.scrollItems;
@@ -80,7 +89,8 @@
         const _scrollItems = this.scrollItems;
         const st = this.$el.scrollTop;
         this.scrollItems = Math.ceil((st - this.buffer) / this.itemHeight);
-        if (this.scrollItems == _scrollItems && _scrollItems != -1) {
+        const toDown = this.scrollItems > _scrollItems ? true : false
+        if (this.scrollItems == _scrollItems && this.isInit) {
           return;
         }
         console.log("-----------------------更新开始------------------");
@@ -94,6 +104,7 @@
         console.log(this.endIndex, "这次结束索引");
         let count = 0;
         let difCount = this.showNum - 1;
+        let newItems = [];
         for (let i = this.startIndex; i <= this.endIndex; i++) {
           const item = this.list[i];
           const view = this.views.get(item[this.keyField]);
@@ -114,24 +125,30 @@
               return item.index === i;
             });
             if (index == -1) {
-              console.log(i, "不存在的条目索引");
-              if (i > _endIndex) {
-                this.pool[count].index = i;
-                this.pool[count].item = this.list[i];
-                this.pool[count].pos = this.itemHeight * i;
-                count++;
-              } else {
-                this.pool[difCount].index = i;
-                this.pool[difCount].item = this.list[i];
-                this.pool[difCount].pos = this.itemHeight * i;
-                difCount--;
-              }
+              newItems.push(i);
             }
 
           }
         }
+        console.log(newItems, "不存在的条目索引");
+        if (toDown) {
+          for (let i of newItems) {
+            this.pool[count].index = i;
+            this.pool[count].item = this.list[i];
+            this.pool[count].pos = this.itemHeight * i;
+            count++;
+          }
+        } else {
+          for (let i of newItems.reverse()) {
+            this.pool[difCount].index = i;
+            this.pool[difCount].item = this.list[i];
+            this.pool[difCount].pos = this.itemHeight * i;
+            difCount--;
+          }
+        }
         this.pool.sort((viewA, viewB) => viewA.index - viewB.index);
-        console.log(this.pool.map(item => item.index).toString(), "渲染池");
+        this.isInit = true;
+        console.log(this.pool.map(item => item.id).toString(), "渲染池");
         console.log("-----------------------更新结束------------------");
       }
 
