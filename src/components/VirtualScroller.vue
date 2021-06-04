@@ -26,6 +26,10 @@
       keyField: {
         type: String,
         default: ""
+      },
+      buffer: {
+        type: Number,
+        default: 200
       }
     },
     data() {
@@ -39,6 +43,7 @@
         pool: [],
         views: null,
         keyid: 0,
+
       }
     },
     watch: {
@@ -53,11 +58,14 @@
         this.views = new Map();
         this.viewHeight = this.$el.getBoundingClientRect().height;
         this.totalHeight = this.list.length * this.itemHeight
-        this.showNum = Math.ceil(this.viewHeight / this.itemHeight);
+        this.showNum = Math.ceil((this.viewHeight + this.buffer * 2) / this.itemHeight);
         this.updateItems();
       },
       getPositionIndex() {
         this.startIndex = this.scrollItems;
+        if (this.startIndex < 0) {
+          this.startIndex = 0;
+        }
         this.endIndex = this.startIndex + this.showNum - 1;
         if (this.endIndex >= this.list.length) {
           this.endIndex = this.list.length - 1;
@@ -71,7 +79,7 @@
       updateItems() {
         const _scrollItems = this.scrollItems;
         const st = this.$el.scrollTop;
-        this.scrollItems = Math.ceil(st / this.itemHeight);
+        this.scrollItems = Math.ceil((st - this.buffer) / this.itemHeight);
         if (this.scrollItems == _scrollItems && _scrollItems != -1) {
           return;
         }
@@ -101,6 +109,7 @@
           if (this.pool.length < this.showNum) {
             this.pool.push(this.views.get(item[this.keyField]));
           } else {
+
             const index = this.pool.findIndex(item => {
               return item.index === i;
             });
@@ -112,13 +121,13 @@
                 this.pool[count].pos = this.itemHeight * i;
                 count++;
               } else {
-                const length = this.pool.length;
                 this.pool[difCount].index = i;
                 this.pool[difCount].item = this.list[i];
                 this.pool[difCount].pos = this.itemHeight * i;
                 difCount--;
               }
             }
+
           }
         }
         this.pool.sort((viewA, viewB) => viewA.index - viewB.index);
