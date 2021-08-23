@@ -1,9 +1,9 @@
 <template>
   <div style="height: 100%" @scroll.passive="onScroll" class="scroll-wrap">
     <div v-if="list.length > 0" :style="{height: `${totalHeight}px`}" class="view-wrap">
-      <div class="scroll-item" :id="view.id" v-for="(view, index) in pool" :key="view.id"
-        :style="{transform: `translateY(${view.pos}px)`}">
-        <slot :item="view.item" :index="view.index" :pos="view.pos"></slot>
+      <div class="scroll-item" :id="item.id" v-for="(item, index) in pool" :key="item.id"
+        :style="{transform: `translateY(${item.view.pos}px)`}">
+        <slot :item="item.view.item" :index="item.view.index" :pos="item.view.pos"></slot>
       </div>
     </div>
   </div>
@@ -75,10 +75,10 @@
         if (this.startIndex < 0) {
           this.startIndex = 0;
         }
-        this.endIndex = this.startIndex + this.showNum - 1;
-        if (this.endIndex >= this.list.length) {
-          this.endIndex = this.list.length - 1;
+        if (this.startIndex > this.list.length - this.showNum) {
+          this.startIndex = this.list.length - this.showNum
         }
+        this.endIndex = this.startIndex + this.showNum - 1;
       },
       onScroll(e) {
         requestAnimationFrame(() => {
@@ -113,19 +113,18 @@
               index: i,
               item,
               pos: this.itemHeight * i,
-              id: this.keyid++
             });
           }
 
           if (this.pool.length < this.showNum) {
-            this.pool.push(this.views.get(item[this.keyField]));
+            this.pool.push({ id: this.keyid++, view: this.views.get(item[this.keyField]) });
           } else {
 
             const index = this.pool.findIndex(item => {
-              return item.index === i;
+              return item.view.index === i;
             });
             if (index == -1) {
-              newItems.push(i);
+              newItems.push(item[this.keyField]);
             }
 
           }
@@ -133,20 +132,16 @@
         console.log(newItems, "不存在的条目索引");
         if (toDown) {
           for (let i of newItems) {
-            this.pool[count].index = i;
-            this.pool[count].item = this.list[i];
-            this.pool[count].pos = this.itemHeight * i;
+            this.pool[count].view = this.views.get(i)
             count++;
           }
         } else {
           for (let i of newItems.reverse()) {
-            this.pool[difCount].index = i;
-            this.pool[difCount].item = this.list[i];
-            this.pool[difCount].pos = this.itemHeight * i;
+            this.pool[difCount].view = this.views.get(i)
             difCount--;
           }
         }
-        this.pool.sort((viewA, viewB) => viewA.index - viewB.index);
+        this.pool.sort((viewA, viewB) => viewA.view.index - viewB.view.index);
         this.isInit = true;
         console.log(this.pool.map(item => item.id).toString(), "渲染池");
         console.log("-----------------------更新结束------------------");
